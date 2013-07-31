@@ -1,0 +1,4 @@
+seneca-account
+==============
+
+Account management
