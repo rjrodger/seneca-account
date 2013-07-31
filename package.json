@@ -1,0 +1,38 @@
+{
+  "name": "seneca-account",
+  "version": "0.1.0",
+  "description": "Seneca account management plugin",
+  "main": "account.js",
+  "scripts": {
+    "test": "node lib/account.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/rjrodger/seneca-account.git"
+  },
+  "keywords": [
+    "seneca",
+    "account",
+    "management",
+    "plugin"
+  ],
+  "author": "Richard Rodger (http://richardrodger.com)",
+  "license": "MIT",
+  "dependencies": {
+    "underscore": "~1.4.4",
+    "async": "~0.2.9"
+  },
+  "devDependencies": {
+    "gex": "~0.1.1",
+    "chai": "~1.7.2",
+    "async": "~0.2.5",
+    "seneca": "~0.5.9",
+    "seneca-user": "~0.2.2"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.txt",
+    "lib/account.js",
+    "test/readme.js"
+  ]
+}
