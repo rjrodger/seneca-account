@@ -60,6 +60,14 @@ module.exports = function( options ) {
     }
   }
 
+  function adduser( account, user ) {
+    if( user ) {
+      account.users = account.users || []
+      account.users.push( user.id )
+      account.users = _.uniq(account.users)
+    }
+  }
+
 
   function loadaccounts( user, done ) {
     async.mapLimit(user.accounts||[],options.loadlimit,function(accid,cb){
@@ -114,6 +122,7 @@ module.exports = function( options ) {
     var account = args.account
 
     addaccount( user, account ) 
+    adduser( account, user ) 
     user.accounts.unshift( account.id )
     user.accounts = _.uniq(user.accounts)
 
@@ -126,6 +135,7 @@ module.exports = function( options ) {
     var account = args.account
 
     addaccount( user, account ) 
+    adduser( user, account ) 
 
     user.save$( done )
   }
