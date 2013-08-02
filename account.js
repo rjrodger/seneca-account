@@ -52,21 +52,25 @@ module.exports = function( options ) {
   var pin = seneca.pin({role:name,cmd:'*'})
 
 
-  function addaccount( user, account ) {
-    if( account ) {
-      user.accounts = user.accounts || []
-      user.accounts.push( account.id )
-      user.accounts = _.uniq(user.accounts)
+  function additem( ent, refent, name ) {
+    if( ent && refent && name ) {
+      ent[name] = ent[name] || []
+      ent[name].push( refent.id )
+      ent[name] = _.uniq( ent[name] )
     }
   }
 
-  function adduser( account, user ) {
-    if( user ) {
-      account.users = account.users || []
-      account.users.push( user.id )
-      account.users = _.uniq(account.users)
-    }
+
+
+  function save( user, account, done ) {
+    user.save$(function(err,user){
+      if(err) return done(err);
+      account.save$(function(err,account){
+        done(err,{user:user,account:account})
+      })
+    })
   }
+
 
 
   function loadaccounts( user, done ) {
@@ -81,6 +85,7 @@ module.exports = function( options ) {
       done(err,user)
     })
   }
+
 
   
   function create_account( args, done ) {
@@ -109,36 +114,40 @@ module.exports = function( options ) {
   }
 
 
+
   function suspend_account( args, done ) {
     var account = args.account
-
     account.active = false
     account.save$(done)
   }
+
 
 
   function primary_account( args, done ) {
     var user    = args.user
     var account = args.account
 
-    addaccount( user, account ) 
-    adduser( account, user ) 
+    additem( user,    account, 'accounts' ) 
+    additem( account, user,    'users'    ) 
+
     user.accounts.unshift( account.id )
     user.accounts = _.uniq(user.accounts)
 
-    user.save$(done)
+    save( user, account, done ) 
   }
+
 
 
   function adduser( args, done ) {
     var user    = args.user
     var account = args.account
 
-    addaccount( user, account ) 
-    adduser( user, account ) 
+    additem( user,    account, 'accounts' ) 
+    additem( account, user,    'users'    ) 
 
-    user.save$( done )
+    save( user, account, done ) 
   }
+
 
 
   function removeuser( args, done ) {
@@ -148,8 +157,12 @@ module.exports = function( options ) {
     user.accounts = user.accounts || []
     user.accounts = _.reject(user.accounts,function(accid){return accid==account.id})
 
-    user.save$( done )
+    account.users = account.users || []
+    account.users = _.reject(account.users,function(accid){return accid==account.id})
+
+    save( user, account, done ) 
   }
+
 
 
   function user_register( args, done ) {
@@ -162,13 +175,21 @@ module.exports = function( options ) {
       pin.resolve(resargs, function( err, account ){
         if( err ) return done( err );
 
-        addaccount( out.user, account ) 
+        additem( out.user, account, 'accounts' ) 
+        additem( account, out.user, 'users' ) 
         delete out.user.account
 
         out.user.save$( function( err, user ){
           if( err ) return done( err );
 
-          loadaccounts(user,done)
+          account.save$( function( err, account ){
+            if( err ) return done( err );
+
+            loadaccounts(user,function( err, user ){
+              out.user = user
+              done( err, out )
+            })
+          })
         })
       })
     })
