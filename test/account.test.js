@@ -10,7 +10,7 @@ var assert  = require('chai').assert
 
 var gex     = require('gex')
 var async   = require('async')
-
+var _       = require('underscore')
 
 
 
@@ -89,5 +89,20 @@ describe('user', function() {
       },
 
     })
+  })
+
+
+  it('loadaccounts--bad-account-id', function(cb) {
+    si.logroute({level:'warn'},_.once(function(){
+      assert.equal(arguments[5],'account-not-found')
+    }))
+
+    accountent.make$({n:'la1'}).save$(cberr(function(acc){
+      userpin.register({name:'LA1',nick:'la1',accounts:[acc.id,'not-an-acc-id']},cberr(function(out){
+        assert.equal( 1, out.user.accounts.length )
+        assert.equal( acc.id, out.user.accounts[0].id )
+        cb()
+      }))
+    }))
   })
 })

@@ -11,7 +11,9 @@ module.exports = function( options ) {
   var seneca = this
   var name   = 'account'
 
-  seneca.depends(name,['user'])
+  seneca.depends(name,[
+    'user' // overrides some actions
+  ])
 
 
   options = seneca.util.deepextend({
@@ -19,39 +21,40 @@ module.exports = function( options ) {
   },options)
   
 
-
-  var accountent = seneca.make$('sys','account')
-  var userent    = seneca.make$('sys','user')
-
-
-  seneca.add({role:name,cmd:'create'},create_account)
-  seneca.add({role:name,cmd:'resolve'},resolve_account)
-  seneca.add({role:name,cmd:'suspend'},suspend_account)
-  seneca.add({role:name,cmd:'primary'},primary_account)
-  seneca.add({role:name,cmd:'adduser'},adduser)
-  seneca.add({role:name,cmd:'removeuser'},removeuser)
+  var accountent = seneca.make$( 'sys/account' )
+  var userent    = seneca.make$( 'sys/user' )
 
 
-  seneca.add({role:'user',cmd:'register'},user_register)
-  seneca.add({role:'user',cmd:'login'},user_login)
+  // actions provided
+  seneca.add( {role:name, cmd:'create'},     create_account )
+  seneca.add( {role:name, cmd:'resolve'},    resolve_account )
+  seneca.add( {role:name, cmd:'suspend'},    suspend_account )
+  seneca.add( {role:name, cmd:'primary'},    primary_account )
+  seneca.add( {role:name, cmd:'adduser'},    adduser )
+  seneca.add( {role:name, cmd:'removeuser'}, removeuser )
 
 
+  // actions overridden
+  seneca.add( {role:'user', cmd:'register' }, user_register )
+  seneca.add( {role:'user', cmd:'login' },    user_login )
+
+
+  // resolve entity args by id
   seneca.act({
-    role:'util',
-    cmd:'ensure_entity',
-    pin:{role:name,cmd:'*'},
-    entmap:{
-      account:accountent,
-      user:userent,
+    role:   'util',
+    cmd:    'ensure_entity',
+    pin:    { role:name, cmd:'*' },
+    entmap: {
+      account: accountent,
+      user:    userent,
     }
   })
 
-
-
   
-  var pin = seneca.pin({role:name,cmd:'*'})
+  var pin = seneca.pin({ role:name, cmd:'*' })
 
 
+  // add refent.id to array prop on ent
   function additem( ent, refent, name ) {
     if( ent && refent && name ) {
       ent[name] = ent[name] || []
@@ -61,28 +64,43 @@ module.exports = function( options ) {
   }
 
 
-
+  // save user and account, provide {user:, account:} 
   function save( user, account, done ) {
     user.save$(function(err,user){
       if(err) return done(err);
+
       account.save$(function(err,account){
-        done(err,{user:user,account:account})
+        if(err) return done(err);
+
+        done(null,{user:user,account:account})
       })
     })
   }
 
 
-
+  // load the account entities for a user, id array in user.accounts property
   function loadaccounts( user, done ) {
-    async.mapLimit(user.accounts||[],options.loadlimit,function(accid,cb){
+    async.mapLimit( user.accounts||[], options.loadlimit, function(accid,cb){
+
+      // already loaded
       if( accid && accid.entity$ ) return cb(null,accid);
+
       accountent.load$(accid,cb)
 
     }, function(err,results){
+      if( err ) return done(err);
+
       if( results ) {
-        user.accounts = results
+        var accounts = []
+        _.each( results, function( accent, i ){
+          if( accent ) {
+            accounts.push(accent)
+          }
+          else seneca.log.warn('account-not-found', user.accounts[i], user.id, user);
+        })
+        user.accounts = accounts
       }
-      done(err,user)
+      done(null,user)
     })
   }
 
