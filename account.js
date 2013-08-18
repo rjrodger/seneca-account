@@ -17,7 +17,8 @@ module.exports = function( options ) {
 
 
   options = seneca.util.deepextend({
-    loadlimit:3
+    loadlimit:3,
+    autoNameSuffix:' Account'
   },options)
   
 
@@ -26,12 +27,29 @@ module.exports = function( options ) {
 
 
   // actions provided
-  seneca.add( {role:name, cmd:'create'},     create_account )
-  seneca.add( {role:name, cmd:'resolve'},    resolve_account )
-  seneca.add( {role:name, cmd:'suspend'},    suspend_account )
-  seneca.add( {role:name, cmd:'primary'},    primary_account )
-  seneca.add( {role:name, cmd:'adduser'},    adduser )
-  seneca.add( {role:name, cmd:'removeuser'}, removeuser )
+  seneca.add( {role:name, cmd:'create'},     
+              {name:'required$,string$'}, 
+              create_account )
+
+  seneca.add( {role:name, cmd:'resolve'},    
+              {user:'required$,object$', account:'object$'}, 
+              resolve_account )
+
+  seneca.add( {role:name, cmd:'suspend'},    
+              {account:'required$,object$'}, 
+              suspend_account )
+
+  seneca.add( {role:name, cmd:'primary'},    
+              {user:'required$,object$', account:'required$,object$'}, 
+              primary_account )
+
+  seneca.add( {role:name, cmd:'adduser'},    
+              {user:'required$,object$', account:'required$,object$'}, 
+              adduser )
+
+  seneca.add( {role:name, cmd:'removeuser'}, 
+              {user:'required$,object$', account:'required$,object$'}, 
+              removeuser )
 
 
   // actions overridden
@@ -105,42 +123,81 @@ module.exports = function( options ) {
   }
 
 
-  
-  function create_account( args, done ) {
-    accountent.make$({
-      name: args.name,
-      active: void 0 == args.active ? true : !!args.active
-    }).save$( done )
+  function account_result( done, log_prefix ) {
+    return function( err, account ) {
+      if( err ) return done(err);
+      this.log.debug.apply( this, log_prefix.concat(account) )
+      done(null,{account:account})
+    }
   }
 
 
+  // create a new account
+  // name: string, name of account
+  // active: boolean, account active if true
+  // other args saved as account fields
+  // provides: {account:sys/account}
+  function create_account( args, done ) {
+    var fields = seneca.util.argprops({}, args, {
+      active: void 0 == args.active ? true : !!args.active
+    }, 'role, cmd')
 
+    var acc = accountent.make$(fields)
+    this.log.debug('create',acc)
+    acc.save$( done )
+  }
+
+
+  // find account for user, or create one if none exists
+  // user: sys/user
+  // account: sys/account, optional, returned if present
+  // provides: {account:sys/account}
   function resolve_account( args, done ) {
     var user   = args.user
     var account = args.account
 
+    // account was passed in from context
     if( account ) {
-      return done(null,account)
+      this.log.debug('resolve','arg',user,account)
+      return done(null,{account:account})
     }
 
+    // user.account field specified account id
+    if( void 0 != user.account ) {
+      return accountent.load$( 
+        user.account, 
+        account_result.call( this, done, ['resolve','field',user] ) )
+    }
+
+    // use primary account from list of account ids in user.accounts
     if( user.accounts && 0 < user.accounts.length) {
-      return accountent.load$( user.accounts[0], done )
+      return accountent.load$( 
+        user.accounts[0], 
+        account_result.call( this, done, ['resolve','primary',user] ) )
     }
 
-    var accname = user.name + ' Account'
-    pin.create({name:accname}, done)
+    // auto create account
+    var accname = user.name + options.autoNameSuffix
+    return pin.create(
+      {name:accname}, 
+      account_result.call( this, done, ['resolve','auto-create',user] ) )
   }
 
 
-
+  // make account inactive
+  // account: sys/account
+  // provides: {account:sys/account}
   function suspend_account( args, done ) {
     var account = args.account
     account.active = false
-    account.save$(done)
+    account.save$( account_result.call( this, done, ['suspend'] ) )
   }
 
 
-
+  // set user's primary account
+  // user: sys/user
+  // account: sys/account
+  // provides: {user:sys/user, account:sys/account}
   function primary_account( args, done ) {
     var user    = args.user
     var account = args.account
@@ -156,6 +213,10 @@ module.exports = function( options ) {
 
 
 
+  // add user to account
+  // user: sys/user
+  // account: sys/account
+  // provides: {user:sys/user, account:sys/account}
   function adduser( args, done ) {
     var user    = args.user
     var account = args.account
@@ -167,7 +228,10 @@ module.exports = function( options ) {
   }
 
 
-
+  // remove user from account
+  // user: sys/user
+  // account: sys/account
+  // provides: {user:sys/user, account:sys/account}
   function removeuser( args, done ) {
     var user    = args.user
     var account = args.account
@@ -183,6 +247,7 @@ module.exports = function( options ) {
 
 
 
+  // override seneca-user, user register action
   function user_register( args, done ) {
     this.prior( args, function( err, out ) {
       if( err ) return done( err );
@@ -190,8 +255,9 @@ module.exports = function( options ) {
       var resargs = {user:out.user}
       if( args.account ) resargs.account = args.account;
 
-      pin.resolve(resargs, function( err, account ){
+      pin.resolve(resargs, function( err, result ){
         if( err ) return done( err );
+        var account = result.account
 
         additem( out.user, account, 'accounts' ) 
         additem( account, out.user, 'users' ) 
@@ -214,6 +280,7 @@ module.exports = function( options ) {
   }
   
 
+  // override seneca-user, user login action
   function user_login( args, done ) {
     this.prior( args, function( err, out ) {
       if( err ) return done( err );
@@ -228,6 +295,7 @@ module.exports = function( options ) {
   }
 
 
+  // define sys/account entity
   seneca.add({init:name}, function( args, done ){
     seneca.act('role:util, cmd:define_sys_entity', {list:[accountent.canon$()]})
   })
