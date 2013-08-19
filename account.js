@@ -35,6 +35,14 @@ module.exports = function( options ) {
               {user:'required$,object$', account:'object$'}, 
               resolve_account )
 
+  seneca.add( {role:name, cmd:'load_accounts'},    
+              {user:'required$,object$'}, 
+              load_accounts )
+
+  seneca.add( {role:name, cmd:'load_users'},    
+              {account:'required$,object$'}, 
+              load_users )
+
   seneca.add( {role:name, cmd:'suspend'},    
               {account:'required$,object$'}, 
               suspend_account )
@@ -54,7 +62,6 @@ module.exports = function( options ) {
 
   // actions overridden
   seneca.add( {role:'user', cmd:'register' }, user_register )
-  seneca.add( {role:'user', cmd:'login' },    user_login )
 
 
   // resolve entity args by id
@@ -99,26 +106,43 @@ module.exports = function( options ) {
   // load the account entities for a user, id array in user.accounts property
   function loadaccounts( user, done ) {
     async.mapLimit( user.accounts||[], options.loadlimit, function(accid,cb){
-
-      // already loaded
-      if( accid && accid.entity$ ) return cb(null,accid);
-
       accountent.load$(accid,cb)
 
     }, function(err,results){
       if( err ) return done(err);
 
+      var accounts = []
       if( results ) {
-        var accounts = []
         _.each( results, function( accent, i ){
           if( accent ) {
             accounts.push(accent)
           }
           else seneca.log.warn('account-not-found', user.accounts[i], user.id, user);
         })
-        user.accounts = accounts
       }
-      done(null,user)
+      done(null,accounts)
+    })
+  }
+
+
+  // load the user entities for an account, id array in account.users property
+  function loadusers( account, done ) {
+    async.mapLimit( account.users||[], options.loadlimit, function(userid,cb){
+      userent.load$(userid,cb)
+
+    }, function(err,results){
+      if( err ) return done(err);
+
+      var users = []
+      if( results ) {
+        _.each( results, function( userent, i ){
+          if( userent ) {
+            users.push(accent)
+          }
+          else seneca.log.warn('user-not-found', account.users[i], account.id, account);
+        })
+      }
+      done(null,users)
     })
   }
 
@@ -182,6 +206,28 @@ module.exports = function( options ) {
       {name:accname}, 
       account_result.call( this, done, ['resolve','auto-create',user] ) )
   }
+
+
+
+  // load accounts for user
+  // user: sys/user
+  // provides: {accounts:[sys/account]}
+  function load_accounts( args, done ) {
+    loadaccounts( args.user, function(err,list){
+      done(err,err?null:{accounts:list})
+    })
+  }
+
+
+  // load users for account
+  // account: sys/account
+  // provides: {users:[sys/user]}
+  function load_users( args, done ) {
+    loadusers( args.account, function(err,list){
+      done(err,err?null:{users:list})
+    })
+  }
+
 
 
   // make account inactive
@@ -251,7 +297,8 @@ module.exports = function( options ) {
   function user_register( args, done ) {
     this.prior( args, function( err, out ) {
       if( err ) return done( err );
-      
+      if( !out.ok ) return done( null, out )
+
       var resargs = {user:out.user}
       if( args.account ) resargs.account = args.account;
 
@@ -263,36 +310,15 @@ module.exports = function( options ) {
         additem( account, out.user, 'users' ) 
         delete out.user.account
 
-        out.user.save$( function( err, user ){
+        save( out.user, account, function( err, res ){
           if( err ) return done( err );
-
-          account.save$( function( err, account ){
-            if( err ) return done( err );
-
-            loadaccounts(user,function( err, user ){
-              out.user = user
-              done( err, out )
-            })
-          })
+          out.user = res.user
+          done( err, out )
         })
       })
     })
   }
   
-
-  // override seneca-user, user login action
-  function user_login( args, done ) {
-    this.prior( args, function( err, out ) {
-      if( err ) return done( err );
-      
-      loadaccounts(out.user, function(err, user){
-        if( err ) return done( err );
-        
-        out.user = user
-        done(null,out)
-      })
-    })
-  }
 
 
   // define sys/account entity

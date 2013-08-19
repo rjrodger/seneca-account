@@ -49,8 +49,10 @@ describe('user', function() {
       auto_create_account: function(cb){
         userpin.register({name:'N1',nick:'n1'},cberr(function(out){
           assert.equal( 1, out.user.accounts.length )
-          tmp.ac1 = out.user.accounts[0]
-          cb()
+          accpin.load_accounts({user:out.user},cberr(function(res){
+            tmp.ac1 = res.accounts[0]
+            cb()
+          }))
         }))
       },
 
@@ -65,7 +67,7 @@ describe('user', function() {
       existing_account: function(cb){
         userpin.register({name:'N2',nick:'n2',account:tmp.ac1.id},cberr(function(out){
           assert.equal( 1, out.user.accounts.length )
-          assert.equal( tmp.ac1.id, out.user.accounts[0].id )
+          assert.equal( tmp.ac1.id, out.user.accounts[0] )
           cb()
         }))
       },
@@ -74,7 +76,7 @@ describe('user', function() {
       primary_account: function(cb){
         userpin.register({name:'N3',nick:'n3',accounts:[tmp.ac1.id]},cberr(function(out){
           assert.equal( 1, out.user.accounts.length )
-          assert.equal( tmp.ac1.id, out.user.accounts[0].id )
+          assert.equal( tmp.ac1.id, out.user.accounts[0] )
           cb()
         }))
       },
@@ -83,7 +85,7 @@ describe('user', function() {
         userpin.login({nick:'n1',auto:true},cberr(function(out){
           var user = out.user
           assert.equal( 1, user.accounts.length )
-          assert.equal( tmp.ac1.id, user.accounts[0].id )
+          assert.equal( tmp.ac1.id, user.accounts[0] )
           cb()
         }))
       },
@@ -99,9 +101,11 @@ describe('user', function() {
 
     accountent.make$({n:'la1'}).save$(cberr(function(acc){
       userpin.register({name:'LA1',nick:'la1',accounts:[acc.id,'not-an-acc-id']},cberr(function(out){
-        assert.equal( 1, out.user.accounts.length )
-        assert.equal( acc.id, out.user.accounts[0].id )
-        cb()
+        accpin.load_accounts({user:out.user},cberr(function(res){
+          assert.equal( 1, res.accounts.length )
+          assert.equal( acc.id, res.accounts[0].id )
+          cb()
+        }))
       }))
     }))
   })
