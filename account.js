@@ -126,6 +126,8 @@ module.exports = function( options ) {
 
   // load the account entities for a user, id array in user.accounts property
   function load_accounts_for_user( user, done ) {
+    if( !user ) return done(null,[]);
+
     async.mapLimit( user.accounts||[], options.loadlimit, function(accid,cb){
       accountent.load$(accid,cb)
 

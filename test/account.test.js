@@ -31,6 +31,7 @@ function cberr(win){
 
 var si = seneca()
 si.use( 'user' )
+si.use( 'auth' )
 si.use( '..' )
 
 var accpin  = si.pin({role:'account',cmd:'*'})
