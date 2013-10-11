@@ -160,7 +160,7 @@ module.exports = function( options ) {
       if( results ) {
         _.each( results, function( userent, i ){
           if( userent ) {
-            users.push(accent)
+            users.push(userent)
           }
           else seneca.log.warn('user-not-found', account.users[i], account.id, account);
         })
