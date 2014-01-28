@@ -191,7 +191,11 @@ module.exports = function( options ) {
 
     var acc = accountent.make$(fields)
     this.log.debug('create',acc)
-    acc.save$( done )
+    acc.save$( function(err, acc) {
+      if(err) return done(err);
+
+      done( null, {ok:!!acc,account:acc} )
+    })
   }
 
 
@@ -227,7 +231,9 @@ module.exports = function( options ) {
     var accname = !_.isEmpty(options.autoNameSuffix) ? user.name + options.autoNameSuffix : ''
     return pin.create(
       {name:accname,orignick:user.nick,origuser:user.id}, 
-      account_result.call( this, done, ['resolve','auto-create',user] ) )
+      function( err, out ) {
+        account_result.call( this, done, ['resolve','auto-create',user] ).call(this,err,out.account)
+      })
   }
 
 
