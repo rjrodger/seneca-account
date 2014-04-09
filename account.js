@@ -36,44 +36,44 @@ module.exports = function( options ) {
 
 
   // actions provided
-  seneca.add( {role:plugin, cmd:'create'},     
-              {name:'required$,string$'}, 
+  seneca.add( {role:plugin, cmd:'create',
+               name:{required$:true,string$:true}}, 
               create_account )
 
-  seneca.add( {role:plugin, cmd:'resolve'},    
-              {user:'required$,object$', account:'object$'}, 
+  seneca.add( {role:plugin, cmd:'resolve',
+               user:{required$:true,object$:true}, account:{object$:true}}, 
               resolve_account )
 
-  seneca.add( {role:plugin, cmd:'load_accounts'},    
-              {user:'required$,object$'}, 
+  seneca.add( {role:plugin, cmd:'load_accounts',
+               user:{required$:true,object$:true}}, 
               load_accounts )
 
-  seneca.add( {role:plugin, cmd:'load_users'},    
-              {account:'required$,object$'}, 
+  seneca.add( {role:plugin, cmd:'load_users',
+               account:{required$:true,object$:true}}, 
               load_users )
 
-  seneca.add( {role:plugin, cmd:'suspend'},    
-              {account:'required$,object$'}, 
+  seneca.add( {role:plugin, cmd:'suspend',
+               account:{required$:true,object$:true}}, 
               suspend_account )
 
-  seneca.add( {role:plugin, cmd:'primary'},    
-              {user:'required$,object$', account:'required$,object$'}, 
+  seneca.add( {role:plugin, cmd:'primary',
+               user:{required$:true,object$:true}, account:{required$:true,object$:true}}, 
               primary_account )
 
-  seneca.add( {role:plugin, cmd:'add_user'},    
-              {user:'required$,object$', account:'required$,object$'}, 
+  seneca.add( {role:plugin, cmd:'add_user',
+               user:{required$:true,object$:true}, account:{required$:true,object$:true}}, 
               add_user )
 
-  seneca.add( {role:plugin, cmd:'remove_user'}, 
-              {user:'required$,object$', account:'required$,object$'}, 
+  seneca.add( {role:plugin, cmd:'remove_user',
+               user:{required$:true,object$:true}, account:{required$:true,object$:true}}, 
               remove_user )
 
-  seneca.add( {role:plugin, cmd:'update'},     
-              {account:'required$,object$'},
+  seneca.add( {role:plugin, cmd:'update',
+               account:{required$:true,object$:true}},
               update_account )
 
-  seneca.add( {role:plugin, cmd:'clean'},     
-              {account:'required$,object$'}, 
+  seneca.add( {role:plugin, cmd:'clean',
+               account:{required$:true,object$:true}}, 
               clean_account )
 
 
