@@ -388,7 +388,7 @@ module.exports = function( options ) {
   // override seneca-auth, instance action
   function auth_instance( args, done ) {
     this.prior( args, function( err, out ) {
-      load_accounts_for_user( args.user, function( err, accounts ){
+      load_accounts_for_user( this, args.user, function( err, accounts ){
         if(err) return done(err);
 
         async.mapLimit( 

@@ -1,6 +1,6 @@
 {
   "name": "seneca-account",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Seneca account management plugin",
   "main": "account.js",
   "scripts": {
