@@ -31,8 +31,6 @@ module.exports = function( options ) {
   }
 
 
-  var accountent = seneca.make$( 'sys/account' )
-  var userent    = seneca.make$( 'sys/user' )
 
 
   // actions provided
@@ -91,14 +89,12 @@ module.exports = function( options ) {
     cmd:    'ensure_entity',
     pin:    { role:plugin, cmd:'*' },
     entmap: {
-      account: accountent,
-      user:    userent,
+      account: seneca.make$( 'sys/account' ),
+      user:    seneca.make$( 'sys/user' ),
     }
   })
 
   
-  var pin = seneca.pin({ role:plugin, cmd:'*' })
-
 
   // add refent.id to array prop on ent
   function additem( ent, refent, name ) {
@@ -125,7 +121,8 @@ module.exports = function( options ) {
 
 
   // load the account entities for a user, id array in user.accounts property
-  function load_accounts_for_user( user, done ) {
+  function load_accounts_for_user( seneca, user, done ) {
+    var accountent = seneca.make$( 'sys/account' )
     if( !user ) return done(null,[]);
 
     async.mapLimit( user.accounts||[], options.loadlimit, function(accid,cb){
@@ -149,7 +146,9 @@ module.exports = function( options ) {
 
 
   // load the user entities for an account, id array in account.users property
-  function load_users_for_account( account, done ) {
+  function load_users_for_account( seneca, account, done ) {
+    var userent = seneca.make$( 'sys/user' )
+
     async.mapLimit( account.users||[], options.loadlimit, function(userid,cb){
       userent.load$(userid,cb)
 
@@ -185,6 +184,9 @@ module.exports = function( options ) {
   // other args saved as account fields
   // provides: {account:sys/account}
   function create_account( args, done ) {
+    var seneca = this
+    var accountent = seneca.make$( 'sys/account' )
+
     var fields = seneca.util.argprops({}, args, {
       active: void 0 == args.active ? true : !!args.active
     }, 'role, cmd')
@@ -204,8 +206,12 @@ module.exports = function( options ) {
   // account: sys/account, optional, returned if present
   // provides: {account:sys/account}
   function resolve_account( args, done ) {
+    var seneca = this
     var user   = args.user
     var account = args.account
+    var accountent = seneca.make$( 'sys/account' )
+    var pin = seneca.pin({ role:plugin, cmd:'*' })
+
 
     // account was passed in from context
     if( account ) {
@@ -242,7 +248,7 @@ module.exports = function( options ) {
   // user: sys/user
   // provides: {accounts:[sys/account]}
   function load_accounts( args, done ) {
-    load_accounts_for_user( args.user, function(err,list){
+    load_accounts_for_user( this, args.user, function(err,list){
       done(err,err?null:{ok:true,accounts:list})
     })
   }
@@ -252,7 +258,7 @@ module.exports = function( options ) {
   // account: sys/account
   // provides: {users:[sys/user]}
   function load_users( args, done ) {
-    load_users_for_account( args.account, function(err,list){
+    load_users_for_account( this, args.account, function(err,list){
       done(err,err?null:{ok:true,users:list})
     })
   }
@@ -352,6 +358,8 @@ module.exports = function( options ) {
 
   // override seneca-user, user register action
   function user_register( args, done ) {
+    var pin = this.pin({ role:plugin, cmd:'*' })
+
     this.prior( args, function( err, out ) {
       if( err ) return done( err );
       if( !out.ok ) return done( null, out )
@@ -441,6 +449,8 @@ module.exports = function( options ) {
 
   // define sys/account entity
   seneca.add({init:plugin}, function( args, done ){
+    var seneca = this
+    var accountent = seneca.make$( 'sys/account' )
     seneca.act('role:util, cmd:define_sys_entity', {list:[accountent.canon$()]})
     done()
   })

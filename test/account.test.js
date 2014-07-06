@@ -45,8 +45,9 @@ describe('user', function() {
   
   it('happy', function() {
     var tmp = {}
-    
-    async.series({
+
+    si.ready( function(){
+
       auto_create_account: function(cb){
         userpin.register({name:'N1',nick:'n1'},cberr(function(out){
           assert.equal( 1, out.user.accounts.length )
