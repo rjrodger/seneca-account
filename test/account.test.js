@@ -1,5 +1,5 @@
 /* Copyright (c) 2010-2013 Richard Rodger */
-"use strict";
+//"use strict";
 
 // mocha account.test.js
 
@@ -42,55 +42,57 @@ var userent    = si.make$('sys','user')
 
 
 describe('user', function() {
-  
+
   it('happy', function() {
     var tmp = {}
 
     si.ready( function(){
 
-      auto_create_account: function(cb){
-        userpin.register({name:'N1',nick:'n1'},cberr(function(out){
-          assert.equal( 1, out.user.accounts.length )
-          accpin.load_accounts({user:out.user},cberr(function(res){
-            tmp.ac1 = res.accounts[0]
+      async.series({
+        auto_create_account: function(cb){
+          userpin.register({name:'N1',nick:'n1'},cberr(function(out){
+            assert.equal( 1, out.user.accounts.length )
+            accpin.load_accounts({user:out.user},cberr(function(res){
+              tmp.ac1 = res.accounts[0]
+              cb()
+            }))
+          }))
+        },
+
+        load_auto_account: function(cb){
+          accountent.load$(tmp.ac1.id,cberr(function(acc){
+            assert.isNotNull(acc)
             cb()
           }))
-        }))
-      },
-
-      load_auto_account: function(cb){
-        accountent.load$(tmp.ac1.id,cberr(function(acc){
-          assert.isNotNull(acc)
-          cb()
-        }))
-      },
+        },
 
 
-      existing_account: function(cb){
-        userpin.register({name:'N2',nick:'n2',account:tmp.ac1.id},cberr(function(out){
-          assert.equal( 1, out.user.accounts.length )
-          assert.equal( tmp.ac1.id, out.user.accounts[0] )
-          cb()
-        }))
-      },
+        existing_account: function(cb){
+          userpin.register({name:'N2',nick:'n2',account:tmp.ac1.id},cberr(function(out){
+            assert.equal( 1, out.user.accounts.length )
+            assert.equal( tmp.ac1.id, out.user.accounts[0] )
+            cb()
+          }))
+        },
 
 
-      primary_account: function(cb){
-        userpin.register({name:'N3',nick:'n3',accounts:[tmp.ac1.id]},cberr(function(out){
-          assert.equal( 1, out.user.accounts.length )
-          assert.equal( tmp.ac1.id, out.user.accounts[0] )
-          cb()
-        }))
-      },
+        primary_account: function(cb){
+          userpin.register({name:'N3',nick:'n3',accounts:[tmp.ac1.id]},cberr(function(out){
+            assert.equal( 1, out.user.accounts.length )
+            assert.equal( tmp.ac1.id, out.user.accounts[0] )
+            cb()
+          }))
+        },
 
-      user_login: function(cb){
-        userpin.login({nick:'n1',auto:true},cberr(function(out){
-          var user = out.user
-          assert.equal( 1, user.accounts.length )
-          assert.equal( tmp.ac1.id, user.accounts[0] )
-          cb()
-        }))
-      },
+        user_login: function(cb){
+          userpin.login({nick:'n1',auto:true},cberr(function(out){
+            var user = out.user
+            assert.equal( 1, user.accounts.length )
+            assert.equal( tmp.ac1.id, user.accounts[0] )
+            cb()
+          }))
+        }
+      })
 
     })
   })

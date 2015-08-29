@@ -28,12 +28,12 @@
     "seneca-auth": "*"
   },
   "devDependencies": {
-    "gex": "~0.1.4",
-    "chai": "~1.9.1",
-    "mocha": "~1.20.1",
-    "seneca": "~0.5.17",
-    "seneca-user": "~0.2.10",
-    "seneca-auth": "~0.2.10"
+    "chai": "^3.2.0",
+    "gex": "^0.2.2",
+    "mocha": "^2.2.5",
+    "seneca": "~0.6.4",
+    "seneca-auth": "~0.4.0",
+    "seneca-user": "~0.2.10"
   },
   "files": [
     "README.md",
