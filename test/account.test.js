@@ -11,7 +11,7 @@ var before = lab.before
 var it = lab.it
 var assert = require('chai').assert
 
-var _ = require('underscore')
+var _ = require('lodash')
 
 function cberr (win) {
   return function (err) {
